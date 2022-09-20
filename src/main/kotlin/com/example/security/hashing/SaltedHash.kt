@@ -1,5 +1,6 @@
 package com.example.security.hashing
 
-data class SoltedHash(
-    
+data class SaltedHash(
+    val hash:String,
+    val salt:String
 )

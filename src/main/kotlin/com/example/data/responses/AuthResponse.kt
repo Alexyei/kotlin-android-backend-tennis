@@ -1,4 +1,8 @@
 package com.example.data.responses
 
-class AuthResponse {
-}
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class AuthResponse(
+    val token: String
+)
