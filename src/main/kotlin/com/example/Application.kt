@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.data.match.MongoMatchDataSource
 import com.example.data.user.MongoUserDataSource
 import com.example.data.user.User
 import io.ktor.server.application.*
@@ -21,6 +22,7 @@ fun Application.module() {
     ).getDatabase("android-tennis")
 
     val userDataSource = MongoUserDataSource(db)
+    val matchDataSource = MongoMatchDataSource(db)
     val tokenService = JwtTokenService()
     val tokenConfig = TokenConfig(
         issuer = environment.config.property("jwt.issue").getString(),
@@ -42,6 +44,6 @@ fun Application.module() {
     configureSecurity(tokenConfig)
     configureMonitoring()
     configureSerialization()
-    configureRouting(userDataSource, hashingService, tokenService, tokenConfig)
+    configureRouting(userDataSource,matchDataSource, hashingService, tokenService, tokenConfig)
 
 }

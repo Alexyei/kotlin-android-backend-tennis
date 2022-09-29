@@ -38,4 +38,6 @@ dependencies {
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
+//    implementation("org.jetbrains.kotlinx", "kotlinx-serialization-runtime", "0.20.0")
 }

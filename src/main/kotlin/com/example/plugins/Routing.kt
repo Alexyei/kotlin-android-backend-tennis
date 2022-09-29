@@ -1,13 +1,11 @@
 package com.example.plugins
 
+import com.example.*
+import com.example.data.match.MatchDataSource
 import com.example.data.user.UserDataSource
-import com.example.getSecretInfo
-import com.example.authenticate
 import com.example.security.hashing.HashingService
 import com.example.security.token.TokenConfig
 import com.example.security.token.TokenService
-import com.example.signIn
-import com.example.signUp
 import io.ktor.server.routing.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -17,6 +15,7 @@ import io.ktor.server.request.*
 
 fun Application.configureRouting(
     userDataSource: UserDataSource,
+    matchDataSource: MatchDataSource,
     hashingService: HashingService,
     tokenService: TokenService,
     tokenConfig: TokenConfig
@@ -26,5 +25,6 @@ fun Application.configureRouting(
         signUp(hashingService, userDataSource)
         authenticate()
         getSecretInfo()
+        insertOrUpdateMatch(userDataSource,matchDataSource)
     }
 }
