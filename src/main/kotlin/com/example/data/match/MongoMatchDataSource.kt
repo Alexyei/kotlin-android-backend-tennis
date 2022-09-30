@@ -31,6 +31,32 @@ class MongoMatchDataSource(db: MongoDatabase):MatchDataSource {
         return result
     }
 
+    override suspend fun getMyMatches(userId: ObjectId): List<MatchResponse> {
+        val result = matches.find(Match::userId eq userId).toList().map {
+                el->MatchResponse(
+            el.id.toString(),
+            el.created.toInstant().toKotlinInstant().toString(),
+            el.setCount,
+            el.endType,
+            el.whoServiceFirst,
+            el.firstPlayerName,
+            el.secondPlayerName,
+            el.penalties,
+            el.sets,
+            el.points,
+        ) }
+
+        return result
+    }
+
+    override suspend fun checkItIsUserMatch(matchId: ObjectId, userId: ObjectId):Boolean {
+        return matches.find(Match::id eq matchId,Match::userId eq userId).toList().isNotEmpty()
+    }
+
+    override suspend fun checkMatchExist(matchId: ObjectId): Boolean {
+        return matches.findOneById(matchId) != null
+    }
+
 //    override suspend fun getUserByUsername(username: String): User? {
 //        return users.findOne(User::username eq username)
 //    }
@@ -38,6 +64,8 @@ class MongoMatchDataSource(db: MongoDatabase):MatchDataSource {
     override suspend fun insertMatch(match: Match): Boolean {
         return matches.insertOne(match).wasAcknowledged()
     }
+
+
 
     override suspend fun insertOrUpdateMatch(match:Match): Boolean {
         val matchExist = matches.findOneById(match.id) != null
@@ -48,7 +76,7 @@ class MongoMatchDataSource(db: MongoDatabase):MatchDataSource {
         }
     }
 
-    override suspend fun deleteMatch(matchId: String): Boolean {
+    override suspend fun deleteMatch(matchId: ObjectId): Boolean {
         val matchExist = matches.findOneById(matchId) != null
         return if(matchExist){
             matches.deleteOneById(matchId).wasAcknowledged()

@@ -26,5 +26,8 @@ fun Application.configureRouting(
         authenticate()
         getSecretInfo()
         insertOrUpdateMatch(userDataSource,matchDataSource)
+        getAllMatches(matchDataSource)
+        getMyMatches(userDataSource, matchDataSource)
+        deleteMatch(userDataSource, matchDataSource)
     }
 }
