@@ -5,6 +5,8 @@ import com.example.data.match.Match
 import com.example.data.match.MatchDataSource
 import com.example.data.requests.AuthRequestSignup
 import com.example.data.requests.MatchRequestInsertOrUpdate
+import com.example.data.responses.AuthResponse
+import com.example.data.responses.MatchIdResponse
 import com.example.data.user.User
 import com.example.data.user.UserDataSource
 import com.example.security.hashing.HashingService
@@ -86,7 +88,6 @@ suspend fun convertMatchRequestInsertOrUpdateToMatch(
     }
 
 
-
     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     val date = format.parse(request.created)
 
@@ -112,30 +113,30 @@ fun Route.insertOrUpdateMatch(
     matchDataSource: MatchDataSource
 ) {
     authenticate {
-    post("insert-or-update") {
-        val request =
-            kotlin.runCatching { call.receiveNullable<MatchRequestInsertOrUpdate>() }.getOrNull() ?: kotlin.run {
+        post("insert-or-update") {
+            val request =
+                kotlin.runCatching { call.receiveNullable<MatchRequestInsertOrUpdate>() }.getOrNull() ?: kotlin.run {
+                    call.respond(HttpStatusCode.BadRequest, "ABCD")
+                    return@post
+                }
+
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.getClaim("userId", String::class)
+
+            if (userId == null) {
                 call.respond(HttpStatusCode.BadRequest, "ABCD")
                 return@post
             }
 
-        val principal = call.principal<JWTPrincipal>()
-        val userId = principal?.getClaim("userId", String::class)
-
-        if (userId == null){
-            call.respond(HttpStatusCode.BadRequest, "ABCD")
-            return@post
-        }
-
-        call.application.environment.log.info("End type: ${request.endType}")
-        println("Count type: ${request.setCount}")
-        println("First player: ${request.firstPlayerName}")
-        println("Second player: ${request.secondPlayerName}")
-        println("Who service First: ${request.whoServiceFirst}")
-        println("points: ${request.points.first}")
-        println("sets: ${request.sets.first.last()}")
-        println("penalties: ${request.penalties.count()}")
-        println("penalties: ${request.created}")
+            call.application.environment.log.info("End type: ${request.endType}")
+            println("Count type: ${request.setCount}")
+            println("First player: ${request.firstPlayerName}")
+            println("Second player: ${request.secondPlayerName}")
+            println("Who service First: ${request.whoServiceFirst}")
+            println("points: ${request.points.first}")
+            println("sets: ${request.sets.first.last()}")
+            println("penalties: ${request.penalties.count()}")
+            println("penalties: ${request.created}")
 
 
 //        var id = ObjectId()
@@ -174,28 +175,28 @@ fun Route.insertOrUpdateMatch(
 //            created = date
 //        )
 
-        println("match start validate")
-        if (!validateMatchRequestInsertOrUpdate(request)) {
-            call.respond(HttpStatusCode.BadRequest, "ABCD")
-            return@post
-        }
-
-        println("match validated")
-        val match: Match
-
-        try {
-            match = convertMatchRequestInsertOrUpdateToMatch(request, userId, userDataSource)
-
-            println("match converted")
-            if (matchDataSource.checkMatchExist(match.id)){
-                if (!matchDataSource.checkItIsUserMatch(match.id,match.userId))
-                    throw Exception("Матч не принадлежит пользователю")
+            println("match start validate")
+            if (!validateMatchRequestInsertOrUpdate(request)) {
+                call.respond(HttpStatusCode.BadRequest, "ABCD")
+                return@post
             }
 
-        } catch (e: Exception) {
-            call.respond(HttpStatusCode.BadRequest, "ABCD")
-            return@post
-        }
+            println("match validated")
+            val match: Match
+
+            try {
+                match = convertMatchRequestInsertOrUpdateToMatch(request, userId, userDataSource)
+
+                println("match converted")
+                if (matchDataSource.checkMatchExist(match.id)) {
+                    if (!matchDataSource.checkItIsUserMatch(match.id, match.userId))
+                        throw Exception("Матч не принадлежит пользователю")
+                }
+
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, "ABCD")
+                return@post
+            }
 //        val areFieldsBlank = request.username.isBlank() || request.password.isBlank() || request.repeat.isBlank()
 //        val isPwTooShortOrLong = request.password.length < 4 || request.password.length > 7
 //        val isLoginTooShortOrLong = request.password.length < 3 || request.password.length > 10
@@ -217,14 +218,18 @@ fun Route.insertOrUpdateMatch(
 //            password = saltedHash.hash,
 //            salt = saltedHash.salt
 //        )
-        val wasAcknowledged = matchDataSource.insertOrUpdateMatch(match)
-        if (!wasAcknowledged) {
-            call.respond(HttpStatusCode.Conflict, "ABCD")
-            return@post
-        }
+            val wasAcknowledged = matchDataSource.insertOrUpdateMatch(match)
+            if (!wasAcknowledged) {
+                call.respond(HttpStatusCode.Conflict, "ABCD")
+                return@post
+            }
 
-        call.respond(HttpStatusCode.OK, true)
-    }
+            call.respond(
+                HttpStatusCode.OK, MatchIdResponse(
+                    id = match.id.toString()
+                )
+            )
+        }
     }
 }
 
@@ -257,9 +262,9 @@ fun Route.getMyMatches(userDataSource: UserDataSource, matchDataSource: MatchDat
     }
 }
 
-fun Route.deleteMatch(userDataSource: UserDataSource, matchDataSource: MatchDataSource){
+fun Route.deleteMatch(userDataSource: UserDataSource, matchDataSource: MatchDataSource) {
     authenticate {
-        delete("delete-match/{id}"){
+        delete("delete-match/{id}") {
             val principal = call.principal<JWTPrincipal>()
             val userId = principal?.getClaim("userId", String::class)
 
@@ -276,7 +281,7 @@ fun Route.deleteMatch(userDataSource: UserDataSource, matchDataSource: MatchData
             }
 
             val matchId = call.parameters["id"]
-            val match:ObjectId;
+            val match: ObjectId;
             try {
                 match = ObjectId(matchId)
                 if (!matchDataSource.checkMatchExist(match)) {
@@ -288,7 +293,7 @@ fun Route.deleteMatch(userDataSource: UserDataSource, matchDataSource: MatchData
                 return@delete
             }
 
-            if (!matchDataSource.checkItIsUserMatch(match,user)){
+            if (!matchDataSource.checkItIsUserMatch(match, user)) {
                 call.respond(HttpStatusCode.Conflict, "ABCD")
                 return@delete
             }
