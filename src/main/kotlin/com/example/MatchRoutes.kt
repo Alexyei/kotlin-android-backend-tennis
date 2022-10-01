@@ -89,6 +89,7 @@ suspend fun convertMatchRequestInsertOrUpdateToMatch(
 
     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     val date = format.parse(request.created)
+
     val match = Match(
         id = id,
         userId = userId,
@@ -110,12 +111,21 @@ fun Route.insertOrUpdateMatch(
     userDataSource: UserDataSource,
     matchDataSource: MatchDataSource
 ) {
+    authenticate {
     post("insert-or-update") {
         val request =
             kotlin.runCatching { call.receiveNullable<MatchRequestInsertOrUpdate>() }.getOrNull() ?: kotlin.run {
                 call.respond(HttpStatusCode.BadRequest, "ABCD")
                 return@post
             }
+
+        val principal = call.principal<JWTPrincipal>()
+        val userId = principal?.getClaim("userId", String::class)
+
+        if (userId == null){
+            call.respond(HttpStatusCode.BadRequest, "ABCD")
+            return@post
+        }
 
         call.application.environment.log.info("End type: ${request.endType}")
         println("Count type: ${request.setCount}")
@@ -174,7 +184,7 @@ fun Route.insertOrUpdateMatch(
         val match: Match
 
         try {
-            match = convertMatchRequestInsertOrUpdateToMatch(request, "6324ad24f2653008b220285d", userDataSource)
+            match = convertMatchRequestInsertOrUpdateToMatch(request, userId, userDataSource)
 
             println("match converted")
             if (matchDataSource.checkMatchExist(match.id)){
@@ -214,6 +224,7 @@ fun Route.insertOrUpdateMatch(
         }
 
         call.respond(HttpStatusCode.OK, true)
+    }
     }
 }
 
