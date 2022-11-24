@@ -114,12 +114,13 @@ fun Route.insertOrUpdateMatch(
 ) {
     authenticate {
         post("insert-or-update") {
+//            проверяем, что переданные данные соответствуют типу MatchRequestInsertOrUpdate
             val request =
                 kotlin.runCatching { call.receiveNullable<MatchRequestInsertOrUpdate>() }.getOrNull() ?: kotlin.run {
                     call.respond(HttpStatusCode.BadRequest, "ABCD")
                     return@post
                 }
-
+// получаем userId из переданного пользователем jwt-токена
             val principal = call.principal<JWTPrincipal>()
             val userId = principal?.getClaim("userId", String::class)
 
@@ -139,42 +140,6 @@ fun Route.insertOrUpdateMatch(
             println("penalties: ${request.created}")
 
 
-//        var id = ObjectId()
-//        var userId: ObjectId
-//
-//        try{
-//            id = ObjectId(request.id)
-//        }catch (_: IllegalArgumentException){ }
-//
-//
-//        try{
-//            userId = ObjectId("6324ad24f2653008b220285d")
-//            if (userDataSource.getUserById(userId)==null){
-//                call.respond(HttpStatusCode.Conflict,"ABCD")
-//                return@post
-//            }
-//
-//        }catch (_: IllegalArgumentException){
-//            call.respond(HttpStatusCode.Conflict,"ABCD")
-//            return@post
-//        }
-//
-//        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-//        val date = format.parse(request.created)
-//        val match = Match(
-//            id = id,
-//            userId = userId,
-//            endType = request.endType,
-//            setCount = request.setCount,
-//            whoServiceFirst = request.whoServiceFirst,
-//            firstPlayerName = request.firstPlayerName,
-//            secondPlayerName = request.secondPlayerName,
-//            points = request.points,
-//            sets = request.sets,
-//            penalties = request.penalties,
-//            created = date
-//        )
-
             println("match start validate")
             if (!validateMatchRequestInsertOrUpdate(request)) {
                 call.respond(HttpStatusCode.BadRequest, "ABCD")
@@ -184,6 +149,7 @@ fun Route.insertOrUpdateMatch(
             println("match validated")
             val match: Match
 
+//            преобразуем данные переданные пользователем в формат используемый в mongoDB
             try {
                 match = convertMatchRequestInsertOrUpdateToMatch(request, userId, userDataSource)
 
@@ -197,28 +163,9 @@ fun Route.insertOrUpdateMatch(
                 call.respond(HttpStatusCode.BadRequest, "ABCD")
                 return@post
             }
-//        val areFieldsBlank = request.username.isBlank() || request.password.isBlank() || request.repeat.isBlank()
-//        val isPwTooShortOrLong = request.password.length < 4 || request.password.length > 7
-//        val isLoginTooShortOrLong = request.password.length < 3 || request.password.length > 10
-//        val isPwAndRepeatEquals = request.password != request.repeat
-//
-//        if(areFieldsBlank || isPwTooShortOrLong || isLoginTooShortOrLong || isPwAndRepeatEquals) {
-//            call.respond(HttpStatusCode.Conflict,"ABCD")
-//            return@post
-//        }
-//
-//        if (userDataSource.getUserByUsername(request.username)!==null){
-//            call.respond(HttpStatusCode.Conflict,"Такой login уже занят")
-//            return@post
-//        }
-//
-//        val saltedHash = hashingService.generateSaltedHash(request.password)
-//        val user = User(
-//            username = request.username,
-//            password = saltedHash.hash,
-//            salt = saltedHash.salt
-//        )
+
             val wasAcknowledged = matchDataSource.insertOrUpdateMatch(match)
+//            если возникла ошибка при записи в БД
             if (!wasAcknowledged) {
                 call.respond(HttpStatusCode.Conflict, "ABCD")
                 return@post
@@ -280,6 +227,7 @@ fun Route.deleteMatch(userDataSource: UserDataSource, matchDataSource: MatchData
                 return@delete
             }
 
+//            получаем параметр из маршрута
             val matchId = call.parameters["id"]
             val match: ObjectId;
             try {
@@ -293,6 +241,7 @@ fun Route.deleteMatch(userDataSource: UserDataSource, matchDataSource: MatchData
                 return@delete
             }
 
+//            проверяем что матч принадлежит пользователю
             if (!matchDataSource.checkItIsUserMatch(match, user)) {
                 call.respond(HttpStatusCode.Conflict, "ABCD")
                 return@delete

@@ -11,8 +11,12 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.request.*
 
+//в необходимых роутах, используем контекст authentication,
+//если мы не переделаи jwt-токен (или передали неверный) это вернёт 401 ошибку клиенту
+//а метод роутера даже не будет вызван
 fun Application.configureSecurity(config:TokenConfig) {
 
+    println("jwt.realm: ${this@configureSecurity.environment.config.property("jwt.realm").getString()}");
     authentication {
         jwt {
 //            val jwtAudience = this@configureSecurity.environment.config.property("jwt.audience").getString()

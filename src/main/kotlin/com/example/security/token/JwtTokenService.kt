@@ -11,6 +11,7 @@ class JwtTokenService:TokenService {
             .withIssuer(config.issuer)
             .withExpiresAt(Date(System.currentTimeMillis()+config.expiresIn))
 
+//        добавляем необходимые данные в токен
         claims.forEach { claim->
             token = token.withClaim(claim.name,claim.value)
         }

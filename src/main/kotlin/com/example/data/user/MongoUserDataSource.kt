@@ -17,6 +17,7 @@ class MongoUserDataSource(db: MongoDatabase):UserDataSource {
     }
 
     override suspend fun insertUser(user: User): Boolean {
+//        wasAcknowledged возврашает true если запись прошла успешно, иначе false.
         return users.insertOne(user).wasAcknowledged()
     }
 
